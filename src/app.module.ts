@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import { HealthController } from './health.controller';
 
 import { PrismaService } from './prisma/prisma.service';
 import { PatientsController } from './modules/patients/patients.controller';
@@ -20,7 +21,7 @@ import { WhatsappService } from './modules/whatsapp/whatsapp.service';
       exclude: ['/api*'],
     }),
   ],
-  controllers: [PatientsController, AppointmentsController],
+  controllers: [PatientsController, HealthController, AppointmentsController],
   providers: [PrismaService, PatientsService, AppointmentsService, WhatsappService],
 })
 export class AppModule {}
