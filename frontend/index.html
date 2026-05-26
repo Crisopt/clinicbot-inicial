@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ClinicBot — Painel de Controle</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f8f7f4;--surface:#fff;--border:#e5e4e0;--text:#1a1a1a;--muted:#6b6a66;
+  --green:#1D9E75;--green-light:#E1F5EE;--green-dark:#0F6E56;
+  --amber:#BA7517;--amber-light:#FAEEDA;
+  --red:#A32D2D;--red-light:#FCEBEB;
+  --blue:#185FA5;--blue-light:#E6F1FB;
+  --radius:8px;--radius-lg:12px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;color:var(--text);background:var(--bg);height:100vh;display:flex;flex-direction:column}
+.app{display:grid;grid-template-columns:220px 1fr;flex:1;overflow:hidden}
+.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:1.25rem 0;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+.sidebar-logo{padding:0 1rem 1.25rem;border-bottom:1px solid var(--border);margin-bottom:.5rem}
+.sidebar-logo h1{font-size:15px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:6px}
+.logo-dot{width:10px;height:10px;border-radius:50%;background:var(--green)}
+.sidebar-logo p{font-size:11px;color:var(--muted);margin-top:3px}
+.nav-btn{display:flex;align-items:center;gap:10px;padding:8px 1rem;cursor:pointer;border:none;background:none;width:100%;text-align:left;font-size:13px;color:var(--muted);font-family:inherit;border-right:2px solid transparent;transition:all .15s}
+.nav-btn:hover{background:#f0efeb;color:var(--text)}
+.nav-btn.active{background:#f0efeb;color:var(--text);font-weight:500;border-right-color:var(--green)}
+.nav-btn svg{width:16px;height:16px;flex-shrink:0}
+.main{display:flex;flex-direction:column;overflow:hidden}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:.875rem 1.5rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.topbar h2{font-size:16px;font-weight:500}
+.topbar-actions{display:flex;gap:8px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;font-size:13px;border-radius:var(--radius);cursor:pointer;transition:all .15s;border:1px solid var(--border);background:transparent;color:var(--text);font-family:inherit}
+.btn:hover{background:#f0efeb}
+.btn:active{transform:scale(.98)}
+.btn-primary{background:var(--green);color:#fff;border-color:var(--green-dark)}
+.btn-primary:hover{background:var(--green-dark)}
+.btn-danger{background:var(--red-light);color:var(--red);border-color:#f7c1c1}
+.content{flex:1;overflow-y:auto;padding:1.5rem}
+.page{display:none}
+.page.active{display:block}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.5rem}
+.stat{background:#f0efeb;border-radius:var(--radius);padding:1rem}
+.stat .lbl{font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}
+.stat .val{font-size:22px;font-weight:600}
+.stat .sub{font-size:11px;color:var(--muted);margin-top:3px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem;margin-bottom:1rem}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.card-header h3{font-size:14px;font-weight:500}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:8px 12px;font-weight:500;font-size:11px;color:var(--muted);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.04em}
+td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#faf9f7}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:500}
+.badge-green{background:var(--green-light);color:var(--green-dark)}
+.badge-amber{background:var(--amber-light);color:var(--amber)}
+.badge-red{background:var(--red-light);color:var(--red)}
+.badge-blue{background:var(--blue-light);color:var(--blue)}
+.badge-gray{background:#f1efea;color:#5f5e5a}
+.avatar{width:30px;height:30px;border-radius:50%;background:var(--green-light);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--green-dark);flex-shrink:0}
+.pat-name{display:flex;align-items:center;gap:10px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group.full{grid-column:1/-1}
+label{font-size:12px;font-weight:500;color:var(--muted)}
+input,select,textarea{font-family:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);color:var(--text);background:var(--surface);width:100%;outline:none;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--green)}
+textarea{resize:vertical}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;align-items:center;justify-content:center}
+.overlay.open{display:flex}
+.modal{background:var(--surface);border-radius:var(--radius-lg);padding:1.5rem;width:460px;max-width:90vw;border:1px solid var(--border);box-shadow:0 8px 32px rgba(0,0,0,.12)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem}
+.modal-header h3{font-size:15px;font-weight:500}
+.modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:1.25rem}
+.info-box{background:var(--green-light);border-radius:var(--radius);padding:10px 12px;font-size:12px;color:var(--green-dark);margin-top:10px;line-height:1.5}
+.worker-status{padding:1rem;border-top:1px solid var(--border);margin-top:auto}
+.dot-live{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:1rem 0}
+.flow-step{background:#f0efeb;border:1px solid var(--border);border-radius:var(--radius);padding:7px 11px;font-size:12px;font-weight:500;display:flex;align-items:center;gap:5px}
+.msg-item{display:flex;align-items:flex-start;gap:10px;padding:10px;border-radius:var(--radius);background:var(--green-light);margin-bottom:8px}
+.msg-icon{width:28px;height:28px;border-radius:50%;background:#9FE1CB;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;color:var(--green-dark)}
+.msg-body p{font-size:13px;line-height:1.4}
+.msg-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.empty{text-align:center;padding:2rem;color:var(--muted);font-size:13px}
+.code{background:#f0efeb;border:1px solid var(--border);border-radius:var(--radius);padding:1rem;font-family:monospace;font-size:11px;color:var(--muted);white-space:pre;overflow-x:auto;line-height:1.7;margin-top:8px}
+.api-status{display:flex;align-items:center;gap:8px;font-size:12px}
+.api-dot{width:8px;height:8px;border-radius:50%}
+.api-dot.online{background:var(--green)}
+.api-dot.offline{background:var(--red)}
+.notification{position:fixed;top:1rem;right:1rem;z-index:200;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 16px;font-size:13px;box-shadow:0 4px 16px rgba(0,0,0,.12);transform:translateY(-80px);transition:transform .3s;max-width:320px}
+.notification.show{transform:translateY(0)}
+.notification.success{border-left:3px solid var(--green)}
+.notification.error{border-left:3px solid var(--red)}
+.tab-bar{display:flex;gap:2px;margin-bottom:1rem;border-bottom:1px solid var(--border)}
+.tab{padding:8px 14px;font-size:13px;cursor:pointer;border:none;background:none;color:var(--muted);border-bottom:2px solid transparent;font-family:inherit;margin-bottom:-1px}
+.tab.active{color:var(--text);border-bottom-color:var(--green);font-weight:500}
+.env-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);gap:12px}
+.env-key{font-family:monospace;font-size:12px;color:var(--muted);flex-shrink:0}
+.env-val{font-family:monospace;font-size:12px;background:#f0efeb;padding:3px 8px;border-radius:var(--radius);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+.ok{color:var(--green-dark);font-size:11px;font-weight:500}
+.missing{color:var(--red);font-size:11px;font-weight:500}
+</style>
+</head>
+<body>
+
+<div id="notif" class="notification"></div>
+
+<div class="app">
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <h1><span class="logo-dot"></span> ClinicBot</h1>
+      <p>Sistema de Lembretes WhatsApp</p>
+    </div>
+    <button class="nav-btn active" onclick="nav('dashboard',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </button>
+    <button class="nav-btn" onclick="nav('patients',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Pacientes
+    </button>
+    <button class="nav-btn" onclick="nav('appointments',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Agendamentos
+    </button>
+    <button class="nav-btn" onclick="nav('messages',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Mensagens
+    </button>
+    <button class="nav-btn" onclick="nav('config',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      Configuração
+    </button>
+    <div class="worker-status">
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:4px">
+        <div class="dot-live" id="api-dot"></div>
+        <span id="api-label">Verificando API...</span>
+      </div>
+      <div style="font-size:11px;color:var(--muted)">BullMQ + Redis</div>
+    </div>
+  </nav>
+
+  <div class="main">
+    <div class="topbar">
+      <h2 id="page-title">Dashboard</h2>
+      <div class="topbar-actions">
+        <button class="btn" onclick="checkApi()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Atualizar
+        </button>
+        <button class="btn btn-primary" onclick="openModal('appointment')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Novo Agendamento
+        </button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="page active" id="pg-dashboard">
+        <div class="stats-grid">
+          <div class="stat"><div class="lbl">Pacientes</div><div class="val" id="s-patients">—</div><div class="sub">cadastrados</div></div>
+          <div class="stat"><div class="lbl">Agendamentos</div><div class="val" id="s-apts">—</div><div class="sub">total</div></div>
+          <div class="stat"><div class="lbl">Lembretes enviados</div><div class="val" id="s-sent">—</div><div class="sub">paciente + admin</div></div>
+          <div class="stat"><div class="lbl">Jobs na fila</div><div class="val" id="s-queue">—</div><div class="sub">delayed + waiting</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:3fr 2fr;gap:1rem">
+          <div class="card">
+            <div class="card-header"><h3>Próximas consultas</h3></div>
+            <table><thead><tr><th>Paciente</th><th>Data</th><th>Paciente</th><th>Admin</th></tr></thead>
+            <tbody id="dash-apts"><tr><td colspan="4" class="empty">Carregando...</td></tr></tbody></table>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3>Fluxo de automação</h3></div>
+            <div class="flow">
+              <div class="flow-step">📝 Cadastro</div><span style="color:var(--muted);font-size:12px">→</span>
+              <div class="flow-step">🗄 PostgreSQL</div><span style="color:var(--muted);font-size:12px">→</span>
+              <div class="flow-step">📋 BullMQ</div><span style="color:var(--muted);font-size:12px">→</span>
+              <div class="flow-step">🔴 Redis</div><span style="color:var(--muted);font-size:12px">→</span>
+              <div class="flow-step">🤖 Worker</div><span style="color:var(--muted);font-size:12px">→</span>
+              <div class="flow-step">💬 WhatsApp</div>
+            </div>
+            <div style="font-size:11px;color:var(--muted);line-height:1.6;margin-top:8px">
+              <b>Regra 1 — Admin:</b> notificado 2 dias após cadastro<br>
+              <b>Regra 2 — Paciente:</b> lembrete 2 dias antes da consulta
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PATIENTS -->
+      <div class="page" id="pg-patients">
+        <div class="card" style="padding:0">
+          <div class="card-header" style="padding:1rem 1.25rem 0">
+            <h3>Pacientes cadastrados</h3>
+            <button class="btn btn-primary" onclick="openModal('patient')">+ Novo paciente</button>
+          </div>
+          <table>
+            <thead><tr><th>Nome</th><th>Telefone</th><th>E-mail</th><th>Cadastro</th><th>Ações</th></tr></thead>
+            <tbody id="patients-tbody"><tr><td colspan="5" class="empty">Carregando...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- APPOINTMENTS -->
+      <div class="page" id="pg-appointments">
+        <div class="tab-bar">
+          <button class="tab active" onclick="aptTab(this,'all')">Todos</button>
+          <button class="tab" onclick="aptTab(this,'pending')">Pendentes</button>
+          <button class="tab" onclick="aptTab(this,'done')">Concluídos</button>
+        </div>
+        <div class="card" style="padding:0">
+          <table>
+            <thead><tr><th>Paciente</th><th>Data/Hora</th><th>Observação</th><th>Lembrete Paciente</th><th>Lembrete Admin</th><th>Ações</th></tr></thead>
+            <tbody id="apts-tbody"><tr><td colspan="6" class="empty">Carregando...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- MESSAGES -->
+      <div class="page" id="pg-messages">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+          <div class="card">
+            <div class="card-header"><h3>Fila BullMQ (jobs agendados)</h3><span class="badge badge-green" id="queue-badge">0 jobs</span></div>
+            <div id="queue-jobs"><div class="empty">Carregando status da fila...</div></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3>Testar mensagem</h3></div>
+            <div class="form-group" style="margin-bottom:10px">
+              <label>Telefone (DDI+DDD+número)</label>
+              <input id="test-phone" type="text" placeholder="5511999999999" />
+            </div>
+            <div class="form-group" style="margin-bottom:10px">
+              <label>Mensagem</label>
+              <textarea id="test-msg" rows="3" placeholder="Olá, sua consulta é em 2 dias..."></textarea>
+            </div>
+            <button class="btn btn-primary" onclick="testSend()">Simular envio</button>
+            <div class="info-box" style="margin-top:12px">
+              ℹ️ Se WHATSAPP_TOKEN não estiver configurado no .env, o envio será apenas simulado no log do worker.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONFIG -->
+      <div class="page" id="pg-config">
+        <div class="card">
+          <div class="card-header"><h3>Status das variáveis de ambiente</h3></div>
+          <div id="env-status"><div class="empty">Verificando...</div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>Como rodar localmente</h3></div>
+          <div style="font-size:13px;line-height:1.8;color:var(--muted)">
+            <b style="color:var(--text)">Pré-requisitos:</b> Docker Desktop instalado<br>
+            <b style="color:var(--text)">Passo a passo:</b>
+          </div>
+          <div class="code">1. Copie o arquivo de configuração:
+   cp .env.example .env
+
+2. Edite o .env com seu token WhatsApp e telefone:
+   WHATSAPP_TOKEN=seu_token
+   WHATSAPP_PHONE_ID=seu_phone_id
+   MASTER_PHONE=5511999999999
+
+3. Suba todos os serviços:
+   docker compose up --build
+
+4. Acesse o painel:
+   http://localhost:3000
+
+5. (Opcional) Ver logs do worker:
+   docker compose logs -f worker</div>
+          <div class="info-box" style="margin-top:12px">
+            ✅ Sem token WhatsApp, o sistema funciona normalmente — os envios são simulados no console do worker. Útil para testar o fluxo completo antes de configurar a API da Meta.
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>Endpoints da API</h3></div>
+          <div class="code">POST   /api/patients              — Cadastrar paciente
+GET    /api/patients              — Listar pacientes
+GET    /api/patients/:id          — Buscar paciente
+DELETE /api/patients/:id          — Remover paciente
+
+POST   /api/appointments          — Criar agendamento (agenda jobs automaticamente)
+GET    /api/appointments          — Listar agendamentos
+GET    /api/appointments/queue/status — Status da fila BullMQ
+DELETE /api/appointments/:id      — Remover agendamento (cancela jobs)</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PACIENTE -->
+<div class="overlay" id="modal-patient">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Novo paciente</h3>
+      <button class="btn" onclick="closeModal('patient')">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group full"><label>Nome completo *</label><input id="p-name" type="text" placeholder="Maria Silva" /></div>
+      <div class="form-group"><label>Telefone WhatsApp *</label><input id="p-phone" type="text" placeholder="5511999999999" /></div>
+      <div class="form-group"><label>E-mail (opcional)</label><input id="p-email" type="email" placeholder="maria@email.com" /></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('patient')">Cancelar</button>
+      <button class="btn btn-primary" onclick="savePatient()">Cadastrar paciente</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AGENDAMENTO -->
+<div class="overlay" id="modal-appointment">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Novo agendamento</h3>
+      <button class="btn" onclick="closeModal('appointment')">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>Paciente *</label>
+        <select id="a-patient"><option value="">Selecionar...</option></select>
+      </div>
+      <div class="form-group"><label>Data da consulta *</label><input id="a-date" type="date" /></div>
+      <div class="form-group"><label>Horário *</label><input id="a-time" type="time" value="09:00" /></div>
+      <div class="form-group full"><label>Observação</label><input id="a-notes" type="text" placeholder="Retorno, exame, consulta inicial..." /></div>
+    </div>
+    <div class="info-box">
+      📅 2 jobs serão criados automaticamente: admin notificado em 2 dias, paciente notificado 2 dias antes da consulta.
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('appointment')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveAppointment()">Criar agendamento</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:3000/api';
+let allApts = [];
+let aptFilter = 'all';
+
+function fmt(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+}
+function fmtDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('pt-BR');
+}
+function initials(name) {
+  return (name||'').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+}
+
+async function api(path, opts={}) {
+  const r = await fetch(API + path, {
+    headers: {'Content-Type':'application/json'},
+    ...opts,
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+function notify(msg, type='success') {
+  const el = document.getElementById('notif');
+  el.textContent = msg;
+  el.className = `notification ${type} show`;
+  setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+async function checkApi() {
+  try {
+    await fetch(API + '/patients');
+    document.getElementById('api-dot').className = 'api-dot online';
+    document.getElementById('api-label').textContent = 'API conectada';
+  } catch {
+    document.getElementById('api-dot').className = 'api-dot offline';
+    document.getElementById('api-label').textContent = 'API offline';
+  }
+}
+
+function nav(id, el) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('pg-'+id).classList.add('active');
+  el.classList.add('active');
+  const titles = {dashboard:'Dashboard',patients:'Pacientes',appointments:'Agendamentos',messages:'Mensagens & Fila',config:'Configuração'};
+  document.getElementById('page-title').textContent = titles[id]||id;
+  if(id==='patients') loadPatients();
+  if(id==='appointments') loadAppointments();
+  if(id==='messages') loadQueue();
+  if(id==='config') loadEnvStatus();
+}
+
+async function loadDashboard() {
+  try {
+    const [patients, apts, queue] = await Promise.all([
+      api('/patients'), api('/appointments'), api('/appointments/queue/status')
+    ]);
+    document.getElementById('s-patients').textContent = patients.length;
+    document.getElementById('s-apts').textContent = apts.length;
+    const sent = apts.filter(a=>a.reminderSent).length + apts.filter(a=>a.adminReminderSent).length;
+    document.getElementById('s-sent').textContent = sent;
+    document.getElementById('s-queue').textContent = (queue.delayed||0) + (queue.waiting||0);
+
+    const upcoming = apts.filter(a=>new Date(a.appointmentAt)>new Date()).slice(0,5);
+    document.getElementById('dash-apts').innerHTML = upcoming.length ? upcoming.map(a=>`
+      <tr>
+        <td><div class="pat-name"><div class="avatar">${initials(a.patient?.name)}</div>${a.patient?.name||'—'}</div></td>
+        <td>${fmt(a.appointmentAt)}</td>
+        <td>${a.reminderSent?'<span class="badge badge-green">✓ Enviado</span>':'<span class="badge badge-amber">⏳ Pendente</span>'}</td>
+        <td>${a.adminReminderSent?'<span class="badge badge-green">✓ Enviado</span>':'<span class="badge badge-amber">⏳ Pendente</span>'}</td>
+      </tr>`).join('') : '<tr><td colspan="4" class="empty">Nenhuma consulta futura</td></tr>';
+  } catch(e) {
+    document.getElementById('dash-apts').innerHTML = '<tr><td colspan="4" class="empty">API offline — rode: docker compose up</td></tr>';
+  }
+}
+
+async function loadPatients() {
+  try {
+    const patients = await api('/patients');
+    document.getElementById('patients-tbody').innerHTML = patients.length ? patients.map(p=>`
+      <tr>
+        <td><div class="pat-name"><div class="avatar">${initials(p.name)}</div><div><div>${p.name}</div><div style="font-size:11px;color:var(--muted)">${p.email||'—'}</div></div></div></td>
+        <td><code style="font-size:12px">${p.phone}</code></td>
+        <td>${p.email||'—'}</td>
+        <td>${fmtDate(p.createdAt)}</td>
+        <td>
+          <button class="btn" style="font-size:11px;padding:4px 8px" onclick="quickApt('${p.id}','${p.name}')">+ Agendar</button>
+          <button class="btn btn-danger" style="font-size:11px;padding:4px 8px;margin-left:4px" onclick="deletePatient('${p.id}','${p.name}')">Remover</button>
+        </td>
+      </tr>`).join('') : '<tr><td colspan="5" class="empty">Nenhum paciente cadastrado</td></tr>';
+  } catch {
+    document.getElementById('patients-tbody').innerHTML = '<tr><td colspan="5" class="empty">Erro ao conectar na API</td></tr>';
+  }
+}
+
+async function loadAppointments() {
+  try {
+    allApts = await api('/appointments');
+    renderApts();
+  } catch {
+    document.getElementById('apts-tbody').innerHTML = '<tr><td colspan="6" class="empty">Erro ao conectar na API</td></tr>';
+  }
+}
+
+function renderApts() {
+  const now = new Date();
+  let filtered = allApts;
+  if (aptFilter === 'pending') filtered = allApts.filter(a=>!a.reminderSent||!a.adminReminderSent);
+  if (aptFilter === 'done') filtered = allApts.filter(a=>new Date(a.appointmentAt)<now);
+  document.getElementById('apts-tbody').innerHTML = filtered.length ? filtered.map(a=>`
+    <tr>
+      <td><div class="pat-name"><div class="avatar">${initials(a.patient?.name)}</div>${a.patient?.name||'—'}</div></td>
+      <td>${fmt(a.appointmentAt)}</td>
+      <td style="color:var(--muted)">${a.notes||'—'}</td>
+      <td>${a.reminderSent?'<span class="badge badge-green">✓ Enviado</span>':'<span class="badge badge-amber">⏳ Pendente</span>'}</td>
+      <td>${a.adminReminderSent?'<span class="badge badge-green">✓ Enviado</span>':'<span class="badge badge-amber">⏳ Pendente</span>'}</td>
+      <td><button class="btn btn-danger" style="font-size:11px;padding:4px 8px" onclick="deleteApt('${a.id}')">Cancelar</button></td>
+    </tr>`).join('') : '<tr><td colspan="6" class="empty">Nenhum agendamento</td></tr>';
+}
+
+function aptTab(el, f) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  aptFilter = f;
+  renderApts();
+}
+
+async function loadQueue() {
+  try {
+    const q = await api('/appointments/queue/status');
+    const total = (q.delayed||0)+(q.waiting||0);
+    document.getElementById('queue-badge').textContent = `${total} jobs`;
+    const jobs = q.jobs||[];
+    document.getElementById('queue-jobs').innerHTML = jobs.length ? jobs.map(j=>`
+      <div class="msg-item">
+        <div class="msg-icon">⏰</div>
+        <div class="msg-body">
+          <p><b>${j.name}</b></p>
+          <div class="msg-meta">Dispara em: ${fmt(j.processAt)} · Job ID: ${j.id}</div>
+        </div>
+      </div>`).join('') : '<div class="empty">✅ Fila vazia — nenhum job pendente</div>';
+  } catch {
+    document.getElementById('queue-jobs').innerHTML = '<div class="empty">Erro ao conectar na API</div>';
+  }
+}
+
+async function loadEnvStatus() {
+  try {
+    const r = await fetch(API + '/patients');
+    const online = r.ok;
+    document.getElementById('env-status').innerHTML = `
+      <div class="env-row"><span class="env-key">DATABASE_URL</span><span class="env-val">postgresql://postgres:***@postgres:5432/clinicbot</span><span class="${online?'ok':'missing'}">${online?'✓ OK':'✗ Verificar'}</span></div>
+      <div class="env-row"><span class="env-key">REDIS_HOST</span><span class="env-val">redis (via Docker)</span><span class="ok">✓ OK</span></div>
+      <div class="env-row"><span class="env-key">WHATSAPP_TOKEN</span><span class="env-val">Configurado no .env</span><span class="ok">✓ Verificar .env</span></div>
+      <div class="env-row"><span class="env-key">WHATSAPP_PHONE_ID</span><span class="env-val">Configurado no .env</span><span class="ok">✓ Verificar .env</span></div>
+      <div class="env-row" style="border:none"><span class="env-key">MASTER_PHONE</span><span class="env-val">Configurado no .env</span><span class="ok">✓ Verificar .env</span></div>`;
+  } catch {
+    document.getElementById('env-status').innerHTML = '<div class="empty">API offline. Rode: <code>docker compose up</code></div>';
+  }
+}
+
+function openModal(id) {
+  if(id==='appointment') fillPatientSelect();
+  document.getElementById('modal-'+id).classList.add('open');
+}
+function closeModal(id) { document.getElementById('modal-'+id).classList.remove('open'); }
+
+async function fillPatientSelect() {
+  try {
+    const patients = await api('/patients');
+    const sel = document.getElementById('a-patient');
+    sel.innerHTML = '<option value="">Selecionar...</option>' + patients.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  } catch {}
+}
+
+function quickApt(id, name) {
+  openModal('appointment');
+  setTimeout(async()=>{
+    await fillPatientSelect();
+    document.getElementById('a-patient').value = id;
+  }, 100);
+}
+
+async function savePatient() {
+  const name = document.getElementById('p-name').value.trim();
+  const phone = document.getElementById('p-phone').value.trim();
+  if(!name||!phone){ notify('Nome e telefone são obrigatórios','error'); return; }
+  try {
+    await api('/patients', { method:'POST', body:{name, phone, email:document.getElementById('p-email').value||undefined} });
+    closeModal('patient');
+    ['p-name','p-phone','p-email'].forEach(id=>document.getElementById(id).value='');
+    notify('Paciente cadastrado com sucesso!');
+    loadDashboard();
+  } catch(e) { notify('Erro ao cadastrar: '+e.message,'error'); }
+}
+
+async function saveAppointment() {
+  const patientId = document.getElementById('a-patient').value;
+  const date = document.getElementById('a-date').value;
+  const time = document.getElementById('a-time').value;
+  if(!patientId||!date){ notify('Selecione paciente e data','error'); return; }
+  const appointmentAt = new Date(`${date}T${time}:00`).toISOString();
+  try {
+    await api('/appointments', { method:'POST', body:{patientId, appointmentAt, notes:document.getElementById('a-notes').value||undefined} });
+    closeModal('appointment');
+    ['a-notes'].forEach(id=>document.getElementById(id).value='');
+    notify('Agendamento criado! Jobs BullMQ agendados automaticamente ✓');
+    loadDashboard();
+  } catch(e) { notify('Erro ao agendar: '+e.message,'error'); }
+}
+
+async function deletePatient(id, name) {
+  if(!confirm(`Remover paciente "${name}"? Todos os agendamentos serão removidos.`)) return;
+  try {
+    await api('/patients/'+id, {method:'DELETE'});
+    notify('Paciente removido.');
+    loadPatients();
+    loadDashboard();
+  } catch(e){ notify('Erro: '+e.message,'error'); }
+}
+
+async function deleteApt(id) {
+  if(!confirm('Cancelar este agendamento? Os jobs de lembrete também serão removidos da fila.')) return;
+  try {
+    await api('/appointments/'+id, {method:'DELETE'});
+    notify('Agendamento cancelado e jobs removidos da fila.');
+    loadAppointments();
+    loadDashboard();
+  } catch(e){ notify('Erro: '+e.message,'error'); }
+}
+
+async function testSend() {
+  const phone = document.getElementById('test-phone').value;
+  const msg = document.getElementById('test-msg').value;
+  if(!phone||!msg){ notify('Preencha telefone e mensagem','error'); return; }
+  notify(`Simulação registrada → ${phone}. Verifique o log do worker: docker compose logs -f worker`);
+}
+
+checkApi();
+loadDashboard();
+setInterval(checkApi, 30000);
+</script>
+</body>
+</html>

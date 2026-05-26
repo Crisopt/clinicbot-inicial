@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: clinicbot_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: clinicbot123
+      POSTGRES_DB: clinicbot
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: clinicbot_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: clinicbot_api
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      DATABASE_URL: postgresql://postgres:clinicbot123@postgres:5432/clinicbot
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      WHATSAPP_TOKEN: ${WHATSAPP_TOKEN}
+      WHATSAPP_PHONE_ID: ${WHATSAPP_PHONE_ID}
+      MASTER_PHONE: ${MASTER_PHONE}
+      JWT_SECRET: ${JWT_SECRET:-clinicbot_jwt_secret_change_in_prod}
+      PORT: 3000
+    ports:
+      - "3000:3000"
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: clinicbot_worker
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      DATABASE_URL: postgresql://postgres:clinicbot123@postgres:5432/clinicbot
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      WHATSAPP_TOKEN: ${WHATSAPP_TOKEN}
+      WHATSAPP_PHONE_ID: ${WHATSAPP_PHONE_ID}
+      MASTER_PHONE: ${MASTER_PHONE}
+
+volumes:
+  postgres_data:
+  redis_data:

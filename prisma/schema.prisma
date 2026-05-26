@@ -1,0 +1,33 @@
+// clinicbot/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Patient {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String
+  email     String?
+  createdAt DateTime @default(now())
+
+  appointments Appointment[]
+}
+
+model Appointment {
+  id            String   @id @default(uuid())
+  patientId     String
+  appointmentAt DateTime
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  reminderSent      Boolean @default(false)
+  adminReminderSent Boolean @default(false)
+
+  patient Patient @relation(fields: [patientId], references: [id])
+}
